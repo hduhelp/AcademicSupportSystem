@@ -4,12 +4,13 @@ import (
 	"HelpStudent/core/logx"
 	"encoding/json"
 	"fmt"
-	"github.com/guonaihong/gout"
-	"github.com/tidwall/gjson"
-	"gorm.io/datatypes"
 	"net/url"
 	"strings"
 	"time"
+
+	"github.com/guonaihong/gout"
+	"github.com/tidwall/gjson"
+	"gorm.io/datatypes"
 )
 
 type HDUHelp struct {
@@ -54,9 +55,13 @@ type HDUHelpPersonInfoResp struct {
 	UnitCode   string `json:"unitCode"`
 }
 
+type HDUHelpUserResp struct {
+	Avatar string `json:"avatar"`
+}
+
 type HDUHelpAttr struct {
 	HDUHelpOAuthTokenResp
-	//HDUHelpPersonInfoResp
+	Avatar string `json:"avatar"`
 }
 
 func (p *HDUHelp) Validate(code string, state string) (staffId string, attr datatypes.JSON, err error) {
@@ -90,32 +95,36 @@ func (p *HDUHelp) Validate(code string, state string) (staffId string, attr data
 		return
 	}
 
-	//for i := 0; i < 3; i++ {
-	//	err = gout.GET("https://api.hduhelp.com/salmon_base/person/info").
-	//		SetHeader(gout.H{
-	//			"authorization": "token " + tokenResp.AccessToken,
-	//		}).BindJSON(&resp).Do()
-	//	if err == nil {
-	//		break
-	//	}
-	//	if i != 0 {
-	//		time.Sleep(100 * time.Millisecond)
-	//	}
-	//}
-	//if err != nil {
-	//	logx.SystemLogger.Errorf("HDUHelp OAuth error: %v", err)
-	//	return
-	//}
-	//if resp.Error != 0 {
-	//	return "", nil, fmt.Errorf("wrong code: %+v", tokenResp)
-	//}
-
 	personInfoResp := HDUHelpPersonInfoResp{}
 	if err = json.Unmarshal(resp.Data, &personInfoResp); err != nil {
 		return
 	}
 
-	attr, _ = json.Marshal(HDUHelpAttr{tokenResp})
+	//获取头像
+	for i := 0; i < 3; i++ {
+		err = gout.GET("https://api.hduhelp.com/user/get").
+			SetHeader(gout.H{
+				"authorization": "token " + tokenResp.AccessToken,
+			}).BindJSON(&resp).Do()
+		if err == nil {
+			break
+		}
+		if i != 0 {
+			time.Sleep(100 * time.Millisecond)
+		}
+	}
+	if err != nil {
+		logx.SystemLogger.Errorf("HDUHelp OAuth get avatar error: %v", err)
+		return
+	}
+	avatarResp := HDUHelpUserResp{}
+	if err = json.Unmarshal(resp.Data, &avatarResp); err != nil {
+		return
+	}
+	attr, _ = json.Marshal(HDUHelpAttr{
+		HDUHelpOAuthTokenResp: tokenResp,
+		Avatar:                avatarResp.Avatar,
+	})
 	return tokenResp.UserId, attr, nil
 }
 
@@ -131,5 +140,12 @@ func (p *HDUHelp) GetUserStaffId(attr datatypes.JSON) (userName string) {
 		return staffId.String()
 	}
 	logx.SystemLogger.Info(attr.String())
+	return ""
+}
+
+func (p *HDUHelp) GetUserAvatar(attr datatypes.JSON) (avatar string) {
+	if avatar := gjson.GetBytes(attr, "avatar"); avatar.Exists() && avatar.String() != "" {
+		return avatar.String()
+	}
 	return ""
 }

@@ -80,6 +80,7 @@ const ProfilePage = () => {
             <div style={{ textAlign: 'center', marginBottom: 40 }}>
               <Avatar 
                 size={80} 
+                src={userInfo.avatar}
                 icon={<UserOutlined />} 
                 style={{ backgroundColor: '#1890ff', marginBottom: 16, boxShadow: '0 4px 10px rgba(24, 144, 255, 0.3)' }} 
               />

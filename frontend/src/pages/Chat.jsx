@@ -28,6 +28,12 @@ import {
   XProvider,
   Think,
 } from '@ant-design/x';
+import axios from 'axios';
+
+// AI 头像地址
+const AI_AVATAR = 'https://api.dicebear.com/7.x/bottts/svg?seed=Academic01';
+
+
 import { chatCompletion, getHistories, getPaginationRecords, delHistory, initOutLinkChat } from '../api/fastgpt';
 import { BASE_URL } from '../api/config';
 
@@ -495,6 +501,22 @@ const Chat = () => {
       index: 0
   });
 
+  const [userInfo, setUserInfo] = useState(null);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (token) {
+        axios.get('/user/v1/info', {
+             headers: { Authorization: 'Bearer ' + token }
+        }).then(res => {
+             // 假设接口返回 { data: { avatar: 'url', ... } }
+            setUserInfo(res.data.data);
+        }).catch(err => {
+            console.error('Fetch user info failed', err);
+        });
+    }
+  }, []);
+
   const openReferenceDrawer = (quotes, index) => {
       setReferenceDrawerState({
           open: true,
@@ -874,7 +896,7 @@ const Chat = () => {
             key: msg.key,
             placement: 'start',
             loading: true,
-            avatar: <Avatar icon={<RobotOutlined />} style={{ backgroundColor: token.colorFillSecondary }} />,
+            avatar: <Avatar src={AI_AVATAR} icon={<RobotOutlined />} style={{ backgroundColor: token.colorFillSecondary }} />,
         }];
     }
 
@@ -1001,6 +1023,7 @@ const Chat = () => {
                  footer: footerElement,
                  avatar: (
                     <Avatar 
+                      src={msg.role === 'user' ? userInfo?.avatar : AI_AVATAR}
                       icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />} 
                       style={{ backgroundColor: msg.role === 'user' ? token.colorPrimary : token.colorFillSecondary }} 
                     />
@@ -1017,6 +1040,7 @@ const Chat = () => {
              content: <Typography.Text>{msg.content}</Typography.Text>,
              avatar: (
                 <Avatar 
+                  src={msg.role === 'user' ? userInfo?.avatar : AI_AVATAR}
                   icon={msg.role === 'user' ? <UserOutlined /> : <RobotOutlined />} 
                   style={{ backgroundColor: msg.role === 'user' ? token.colorPrimary : token.colorFillSecondary }} 
                 />

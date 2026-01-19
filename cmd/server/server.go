@@ -22,6 +22,7 @@ import (
 
 	"github.com/flamego/cors"
 	"github.com/flamego/flamego"
+	"github.com/hduhelp/api_open_sdk/transfer"
 	"github.com/soheilhy/cmux"
 	"github.com/spf13/cobra"
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
@@ -149,6 +150,7 @@ func loadApp() {
 
 // 启动服务
 func run() {
+	transfer.Init(config.GetConfig().OAuth[0].HDUHelp.ClientID, config.GetConfig().OAuth[0].HDUHelp.ClientSecret)
 	port := config.GetConfig().Port
 	// 开启 tcp 监听
 	conn, err := net.Listen("tcp", fmt.Sprintf(":%s", port))

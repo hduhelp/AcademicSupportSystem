@@ -29,6 +29,7 @@ func HandleGetPersonInfo(r flamego.Render, c flamego.Context, auth auth.Info) {
 		Id:          user.ID,
 		StaffId:     user.StaffId,
 		Name:        user.Name,
+		Avatar:      user.Avatar,
 		Permissions: nil,
 	}
 

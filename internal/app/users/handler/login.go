@@ -153,6 +153,7 @@ func HandleThirdPlatCallback(r flamego.Render, c flamego.Context, req dto.ThirdP
 		user := &model.Users{
 			StaffId: oauth.GetStaffId(*b),
 			Name:    oauth.GetUserName(*b),
+			Avatar:  oauth.GetAvatar(*b),
 		}
 		err = dao.Users.CreateWithBind(c.Request().Context(), user, b)
 		if err != nil {

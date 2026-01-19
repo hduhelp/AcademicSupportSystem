@@ -5,8 +5,9 @@ import (
 	"HelpStudent/internal/app/users/model"
 	"HelpStudent/internal/app/users/model/thirdPlat"
 	"HelpStudent/internal/app/users/service/oauth/endpoint"
-	"gorm.io/datatypes"
 	"strings"
+
+	"gorm.io/datatypes"
 )
 
 type Endpoint interface {
@@ -14,6 +15,7 @@ type Endpoint interface {
 	Validate(code string, state string) (unionID string, attr datatypes.JSON, err error)
 	GetUserName(attr datatypes.JSON) (userName string)
 	GetUserStaffId(attr datatypes.JSON) (staffId string)
+	GetUserAvatar(attr datatypes.JSON) (avatar string)
 }
 
 var platformMap = map[string]map[thirdPlat.Type]Endpoint{}
@@ -66,6 +68,15 @@ func GetStaffId(bind model.UserBind) string {
 	for _, m := range platformMap {
 		if e, ok := m[thirdPlat.FromString(bind.Type)]; ok {
 			return e.GetUserStaffId(bind.Attr)
+		}
+	}
+	return ""
+}
+
+func GetAvatar(bind model.UserBind) string {
+	for _, m := range platformMap {
+		if e, ok := m[thirdPlat.FromString(bind.Type)]; ok {
+			return e.GetUserAvatar(bind.Attr)
 		}
 	}
 	return ""

@@ -2,6 +2,7 @@ package v1
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -18,6 +19,7 @@ import (
 
 	"github.com/flamego/binding"
 	"github.com/flamego/flamego"
+	"github.com/guonaihong/gout"
 )
 
 // getFastGPTClient 获取 FastGPT 客户端（使用指定的 API Key）
@@ -563,12 +565,46 @@ func HandleSearchTest(c flamego.Context, r flamego.Render, req dto.SearchTestReq
 	c.ResponseWriter().Write(respBody)
 }
 
+// getHDUHelpUserAvatar 从 HDUHelp API 获取用户头像
+func getHDUHelpUserAvatar(token string) string {
+	type HDUHelpUserResp struct {
+		Error int    `json:"error"`
+		Msg   string `json:"msg"`
+		Data  struct {
+			Avatar string `json:"avatar"`
+		} `json:"data"`
+	}
+
+	var resp HDUHelpUserResp
+
+	err := gout.GET("https://api.hduhelp.com/user/get").
+		SetHeader(gout.H{
+			"Authorization": "token " + token,
+		}).
+		SetTimeout(5 * time.Second).
+		BindJSON(&resp).
+		Do()
+
+	if err != nil {
+		logx.SystemLogger.Errorf("HDUHelp get user avatar error: %v", err)
+		return ""
+	}
+
+	if resp.Error != 0 {
+		logx.SystemLogger.Errorf("HDUHelp get user avatar failed: %s", resp.Msg)
+		return ""
+	}
+
+	return resp.Data.Avatar
+}
+
 // HandleOutLinkInit 外链聊天初始化
 // 路由: GET /fastgpt/core/chat/outLink/init?chatId=xxx&shareId=xxx&outLinkUid=xxx
 func HandleOutLinkInit(c flamego.Context, r flamego.Render, authInfo auth.Info) {
 	chatId := c.Query("chatId")
 	shareId := c.Query("shareId")
 	outLinkUid := c.Query("outLinkUid")
+	hduhelpToken := c.Query("hduhelpToken")
 
 	if shareId == "" {
 		response.HTTPFail(r, 400001, "缺少必要参数 shareId")
@@ -605,6 +641,22 @@ func HandleOutLinkInit(c flamego.Context, r flamego.Render, authInfo auth.Info) 
 		logx.SystemLogger.CtxError(c.Request().Context(), "FastGPT API error: status=%d, body=%s", statusCode, string(respBody))
 		response.HTTPFail(r, 500001, "FastGPT API 调用失败")
 		return
+	}
+
+	// 如果提供了 hduhelpToken，获取用户头像并替换 respBody 中的 userAvatar
+	if hduhelpToken != "" {
+		if avatar := getHDUHelpUserAvatar(hduhelpToken); avatar != "" {
+			// 解析 JSON 并替换 data.userAvatar 字段np
+			var result map[string]interface{}
+			if err := json.Unmarshal(respBody, &result); err == nil {
+				if data, ok := result["data"].(map[string]interface{}); ok {
+					data["userAvatar"] = avatar
+					if modifiedBody, err := json.Marshal(result); err == nil {
+						respBody = modifiedBody
+					}
+				}
+			}
+		}
 	}
 
 	c.ResponseWriter().Header().Set("Content-Type", "application/json")
