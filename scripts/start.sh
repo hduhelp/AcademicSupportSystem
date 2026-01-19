@@ -19,6 +19,11 @@ if [ ! -d "build/static" ] || [ -z "$(ls -A build/static)" ]; then
   exit 1
 fi
 
-echo "🚀 Starting server..."
+echo "🚀 Starting server in screen session 'academic-server'..."
 # 启动后端服务，它将同时提供 API 和静态文件
-nohup ./build/server server > server.log 2>&1 &
+screen -dmS academic-server ./build/server server
+
+echo "✅ Server started!"
+echo "   - 查看日志: screen -r academic-server"
+echo "   - 退出查看: Ctrl+A 然后按 D"
+echo "   - 停止服务: screen -S academic-server -X quit"
